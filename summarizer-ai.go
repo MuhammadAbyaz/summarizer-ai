@@ -1,7 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/aws/aws-cdk-go/awscdk/v2"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/lpernett/godotenv"
+
 	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
@@ -12,11 +17,27 @@ type SummarizerAiStackProps struct {
 }
 
 func NewSummarizerAiStack(scope constructs.Construct, id string, props *SummarizerAiStackProps) awscdk.Stack {
+	godotenv.Load()
 	var sprops awscdk.StackProps
+	apiKey := os.Getenv("GEMINI_API_KEY")
 	if props != nil {
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
+
+	awslambda.NewFunction(stack, jsii.String("fileUploadLambda"),&awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Code: awslambda.AssetCode_FromAsset(jsii.String("lambda/function.zip"), nil),
+		Handler: jsii.String("main"),
+	})
+	awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PYTHON_3_12(),
+		Code: awslambda.AssetCode_FromAsset(jsii.String("python-service"),nil),
+		Handler: jsii.String("summarize.summarizer_handler"),
+		Environment: &map[string]*string{
+			"GEMINI_API_KEY": &apiKey,
+		},
+	})
 
 	// The code that defines your stack goes here
 
