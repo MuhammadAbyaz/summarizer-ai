@@ -6,8 +6,10 @@ toolchain go1.23.4
 
 require (
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.174.1
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/aws/constructs-go/constructs/v10 v10.4.2
 	github.com/aws/jsii-runtime-go v1.106.0
+	github.com/lpernett/godotenv v0.0.0-20230527005122-0de1d4c5ef5e
 )
 
 require (
@@ -17,7 +19,6 @@ require (
 	github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2 v2.1.0 // indirect
 	github.com/cdklabs/cloud-assembly-schema-go/awscdkcloudassemblyschema/v39 v39.1.34 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/lpernett/godotenv v0.0.0-20230527005122-0de1d4c5ef5e // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/yuin/goldmark v1.4.13 // indirect

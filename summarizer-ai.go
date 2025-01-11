@@ -4,10 +4,11 @@ import (
 	"os"
 
 	"github.com/aws/aws-cdk-go/awscdk/v2"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
 	"github.com/lpernett/godotenv"
 
-	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -19,33 +20,54 @@ type SummarizerAiStackProps struct {
 func NewSummarizerAiStack(scope constructs.Construct, id string, props *SummarizerAiStackProps) awscdk.Stack {
 	godotenv.Load()
 	var sprops awscdk.StackProps
-	apiKey := os.Getenv("GEMINI_API_KEY")
 	if props != nil {
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	awslambda.NewFunction(stack, jsii.String("fileUploadLambda"),&awslambda.FunctionProps{
-		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-		Code: awslambda.AssetCode_FromAsset(jsii.String("lambda/function.zip"), nil),
-		Handler: jsii.String("main"),
+	fileBucket := awss3.NewBucket(stack, jsii.String("my-bucket"), &awss3.BucketProps{
+		BucketName:        jsii.String(os.Getenv("BUCKET_NAME")),
+		Versioned:         jsii.Bool(true),
+		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 	})
-	awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
-		Runtime: awslambda.Runtime_PYTHON_3_12(),
-		Code: awslambda.AssetCode_FromAsset(jsii.String("python-service"),nil),
-		Handler: jsii.String("summarize.summarizer_handler"),
-		Environment: &map[string]*string{
-			"GEMINI_API_KEY": &apiKey,
+
+	apiGateway := awsapigateway.NewRestApi(stack, jsii.String("apiGateway"), &awsapigateway.RestApiProps{
+		CloudWatchRole: jsii.Bool(true),
+		DefaultCorsPreflightOptions: &awsapigateway.CorsOptions{
+			AllowHeaders: jsii.Strings("Content-Type"),
+			AllowMethods: jsii.Strings("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+			AllowOrigins: jsii.Strings("*"),
+		},
+		DeployOptions: &awsapigateway.StageOptions{
+			LoggingLevel: awsapigateway.MethodLoggingLevel_INFO,
 		},
 	})
-
-	// The code that defines your stack goes here
-
-	// example resource
-	// queue := awssqs.NewQueue(stack, jsii.String("SummarizerAiQueue"), &awssqs.QueueProps{
-	// 	VisibilityTimeout: awscdk.Duration_Seconds(jsii.Number(300)),
-	// })
-
+	fileUploadLambda := awslambda.NewFunction(stack, jsii.String("fileUploadLambda"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Code:    awslambda.AssetCode_FromAsset(jsii.String("lambda/function.zip"), nil),
+		Handler: jsii.String("main"),
+		Environment: &map[string]*string{
+			"BUCKET_NAME": jsii.String(os.Getenv("BUCKET_NAME")),
+		},
+	})
+	summarizerLambda := awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PYTHON_3_12(),
+		Code:    awslambda.AssetCode_FromAsset(jsii.String("python-service"), nil),
+		Handler: jsii.String("summarize.summarizer_handler"),
+		Environment: &map[string]*string{
+			"GEMINI_API_KEY": jsii.String(os.Getenv("GEMINI_API_KEY")),
+			"BUCKET_NAME":    jsii.String(os.Getenv("BUCKET_NAME")),
+		},
+	})
+	fileBucket.GrantReadWrite(fileUploadLambda, nil)
+	fileBucket.GrantReadWrite(summarizerLambda, nil)
+	apiV1 := apiGateway.Root().AddResource(jsii.String("api"), nil).AddResource(jsii.String("v1"), nil)
+	fileUploadIntegration := awsapigateway.NewLambdaIntegration(fileUploadLambda, nil)
+	summarizerLambdaIntegration := awsapigateway.NewLambdaIntegration(summarizerLambda, nil)
+	summarizer := apiV1.AddResource(jsii.String("get-summary"), nil)
+	summarizer.AddMethod(jsii.String("GET"), summarizerLambdaIntegration, nil)
+	fileUpload := apiV1.AddResource(jsii.String("upload"), nil)
+	fileUpload.AddMethod(jsii.String("POST"), fileUploadIntegration, nil)
 	return stack
 }
 
@@ -54,7 +76,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewSummarizerAiStack(app, "SummarizerAiStack", &SummarizerAiStackProps{
+	NewSummarizerAiStack(app, "SummarizerAIStack", &SummarizerAiStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},
@@ -63,29 +85,6 @@ func main() {
 	app.Synth(nil)
 }
 
-// env determines the AWS environment (account+region) in which our stack is to
-// be deployed. For more information see: https://docs.aws.amazon.com/cdk/latest/guide/environments.html
 func env() *awscdk.Environment {
-	// If unspecified, this stack will be "environment-agnostic".
-	// Account/Region-dependent features and context lookups will not work, but a
-	// single synthesized template can be deployed anywhere.
-	//---------------------------------------------------------------------------
 	return nil
-
-	// Uncomment if you know exactly what account and region you want to deploy
-	// the stack to. This is the recommendation for production stacks.
-	//---------------------------------------------------------------------------
-	// return &awscdk.Environment{
-	//  Account: jsii.String("123456789012"),
-	//  Region:  jsii.String("us-east-1"),
-	// }
-
-	// Uncomment to specialize this stack for the AWS Account and Region that are
-	// implied by the current CLI configuration. This is recommended for dev
-	// stacks.
-	//---------------------------------------------------------------------------
-	// return &awscdk.Environment{
-	//  Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
-	//  Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
-	// }
 }
