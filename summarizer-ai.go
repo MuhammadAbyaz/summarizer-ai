@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
 	"github.com/lpernett/godotenv"
 
 	"github.com/aws/constructs-go/constructs/v10"
@@ -66,10 +67,13 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 	summarizerLambdaIntegration := awsapigateway.NewLambdaIntegration(summarizerLambda, nil)
 	summarizer := apiV1.AddResource(jsii.String("get-summary"), nil)
 	summarizer.AddMethod(jsii.String("GET"), summarizerLambdaIntegration, nil)
+
+	fileBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED, awss3notifications.NewLambdaDestination(summarizerLambda))
 	fileUpload := apiV1.AddResource(jsii.String("upload"), nil)
 	fileUpload.AddMethod(jsii.String("POST"), fileUploadIntegration, nil)
 	return stack
 }
+
 
 func main() {
 	defer jsii.Close()
