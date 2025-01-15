@@ -54,13 +54,16 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 	})
 	summarizerLambda := awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PYTHON_3_12(),
-		Code:    awslambda.Code_FromAsset(jsii.String("python-service"),&awss3assets.AssetOptions{
+		Code:    awslambda.Code_FromAsset(jsii.String("python-lambda"),&awss3assets.AssetOptions{
 			Exclude: jsii.Strings(".venv/*"),
 		}),
 		Handler: jsii.String("summarize.summarizer_handler"),
 		Environment: &map[string]*string{
 			"GEMINI_API_KEY": jsii.String(os.Getenv("GEMINI_API_KEY")),
 			"BUCKET_NAME":    jsii.String(os.Getenv("BUCKET_NAME")),
+			"SUPABASE_URL": jsii.String(os.Getenv("SUPABASE_URL")),
+			"SUPABASE_KEY": jsii.String(os.Getenv("SUPABASE_KEY")),
+			"TABLE_NAME": jsii.String(os.Getenv("TABLE_NAME")),
 		},
 	})
 	fileBucket.GrantReadWrite(fileUploadLambda, nil)
