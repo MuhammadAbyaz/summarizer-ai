@@ -18,8 +18,8 @@
 .cdk.staging
 cdk.out
 
-lambda/bootstrap
-lambda/*.zip
+*/bootstrap
+*/*.zip
 
 .env
 

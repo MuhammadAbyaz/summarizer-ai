@@ -66,17 +66,29 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 			"TABLE_NAME": jsii.String(os.Getenv("TABLE_NAME")),
 		},
 	})
+	summaryLambda := awslambda.NewFunction(stack,jsii.String("getSummary"),&awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Code: awslambda.AssetCode_FromAsset(jsii.String("summary-lambda/function.zip"),nil),
+		Handler: jsii.String("main"),
+		Environment: &map[string]*string{
+			"SUPABASE_URL": jsii.String(os.Getenv("SUPABASE_URL")),
+			"SUPABASE_KEY": jsii.String(os.Getenv("SUPABASE_KEY")),
+			"TABLE_NAME": jsii.String(os.Getenv("TABLE_NAME")),
+		},
+	})
+
 	fileBucket.GrantReadWrite(fileUploadLambda, nil)
 	fileBucket.GrantReadWrite(summarizerLambda, nil)
 	apiV1 := apiGateway.Root().AddResource(jsii.String("api"), nil).AddResource(jsii.String("v1"), nil)
 	fileUploadIntegration := awsapigateway.NewLambdaIntegration(fileUploadLambda, nil)
-	summarizerLambdaIntegration := awsapigateway.NewLambdaIntegration(summarizerLambda, nil)
-	summarizer := apiV1.AddResource(jsii.String("get-summary"), nil)
-	summarizer.AddMethod(jsii.String("GET"), summarizerLambdaIntegration, nil)
+	summaryLambdaIntegration := awsapigateway.NewLambdaIntegration(summaryLambda,nil)
 
 	fileBucket.AddEventNotification(awss3.EventType_OBJECT_CREATED, awss3notifications.NewLambdaDestination(summarizerLambda))
 	fileUpload := apiV1.AddResource(jsii.String("upload"), nil)
 	fileUpload.AddMethod(jsii.String("POST"), fileUploadIntegration, nil)
+
+	summary := apiV1.AddResource(jsii.String("get-summary"),nil)
+	summary.AddMethod(jsii.String("POST"), summaryLambdaIntegration,nil)
 	return stack
 }
 
