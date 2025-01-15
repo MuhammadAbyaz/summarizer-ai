@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3notifications"
 	"github.com/lpernett/godotenv"
 
@@ -53,7 +54,9 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 	})
 	summarizerLambda := awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PYTHON_3_12(),
-		Code:    awslambda.AssetCode_FromAsset(jsii.String("python-service"), nil),
+		Code:    awslambda.Code_FromAsset(jsii.String("python-service"),&awss3assets.AssetOptions{
+			Exclude: jsii.Strings(".venv/*"),
+		}),
 		Handler: jsii.String("summarize.summarizer_handler"),
 		Environment: &map[string]*string{
 			"GEMINI_API_KEY": jsii.String(os.Getenv("GEMINI_API_KEY")),

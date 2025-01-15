@@ -22,3 +22,5 @@ lambda/bootstrap
 lambda/*.zip
 
 .env
+
+.DS_Store
