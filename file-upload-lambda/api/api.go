@@ -60,6 +60,6 @@ func (u APIHandler) FileUploadHandler(request events.APIGatewayProxyRequest) (ev
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Body:       "SuccessFully Uploaded",
+		Body:       fmt.Sprintf("successfully uploaded %s", filename),
 	}, nil
 }

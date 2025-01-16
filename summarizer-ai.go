@@ -46,7 +46,7 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 	})
 	fileUploadLambda := awslambda.NewFunction(stack, jsii.String("fileUploadLambda"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
-		Code:    awslambda.AssetCode_FromAsset(jsii.String("lambda/function.zip"), nil),
+		Code:    awslambda.AssetCode_FromAsset(jsii.String("file-upload-lambda/function.zip"), nil),
 		Handler: jsii.String("main"),
 		Environment: &map[string]*string{
 			"BUCKET_NAME": jsii.String(os.Getenv("BUCKET_NAME")),
@@ -54,7 +54,7 @@ func NewSummarizerAiStack(scope constructs.Construct, id string, props *Summariz
 	})
 	summarizerLambda := awslambda.NewFunction(stack, jsii.String("summarizer"), &awslambda.FunctionProps{
 		Runtime: awslambda.Runtime_PYTHON_3_12(),
-		Code:    awslambda.Code_FromAsset(jsii.String("python-lambda"),&awss3assets.AssetOptions{
+		Code:    awslambda.Code_FromAsset(jsii.String("summarizer-lambda"),&awss3assets.AssetOptions{
 			Exclude: jsii.Strings(".venv/*"),
 		}),
 		Handler: jsii.String("summarize.summarizer_handler"),
