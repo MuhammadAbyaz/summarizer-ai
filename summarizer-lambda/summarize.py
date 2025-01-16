@@ -15,9 +15,9 @@ def store_response(content, key):
             .insert({"id": key, "response": content})
             .execute()
         )
-        response = "successfully stored summary"
+        response = "summary stored successfully"
     except Exception as err:
-        response = f"error: {err}"
+        response = f"error: {err.message.split("\\")[0]}"
     finally:
         return response
 
@@ -31,12 +31,12 @@ def summarizer_handler(event, context):
 
     response = s3_client.get_object(Bucket=os.getenv("BUCKET_NAME"), Key=object_name)
     content = response["Body"].read()
-    prompt = "Summarize this file"
+    prompt = "summarize this file"
     response = model.generate_content(
         [{"mime_type": "application/pdf", "data": content}, prompt]
     )
     res = store_response(response.text, object_name)
 
-    if res == "successfully stored summary":
+    if res == "summary stored successfully":
         return {"statusCode": 200, "body": res}
     return {"statusCode": 500, "body": res}

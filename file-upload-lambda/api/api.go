@@ -22,7 +22,7 @@ func NewAPIHandler(client s3.S3Client) APIHandler {
 }
 
 type RequestBody struct {
-	File string `json:"file"` 
+	File string `json:"file"`
 }
 
 func (u APIHandler) FileUploadHandler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -31,35 +31,35 @@ func (u APIHandler) FileUploadHandler(request events.APIGatewayProxyRequest) (ev
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       fmt.Sprintf("Invalid JSON: %v", err),
+			Body:       fmt.Sprintf("{'error': 'invalid JSON'}"),
 		}, nil
 	}
 	if body.File == "" {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       "File content is required",
+			Body:       fmt.Sprintf("{'error': 'file content is required'}"),
 		}, nil
 	}
 	decoded, err := base64.StdEncoding.DecodeString(body.File)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body:       fmt.Sprintf("Failed to decode base64: %v", err),
+			Body:       fmt.Sprintf("{'error': 'Failed to decode base64'}"),
 		}, nil
 	}
 
 	filename := fmt.Sprintf("upload_%d", time.Now().Unix())
-	
+
 	_, err = u.s3Client.UploadFile(filename, decoded)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body:       err.Error(),
+			Body:       fmt.Sprintf("{'error': 'cannot upload file to s3'}"),
 		}, nil
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Body:       fmt.Sprintf("successfully uploaded %s", filename),
+		Body:       fmt.Sprintf(`{"id": "%s"}`, filename),
 	}, nil
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -10,31 +11,47 @@ import (
 )
 
 type Request struct {
-	Id string `json:"id"`
+	Id string `json:"docId"`
 }
 
-func GetSummary(event events.APIGatewayProxyRequest)(events.APIGatewayProxyResponse,error){
-	supabaseClient,err := supabase.NewClient(os.Getenv("SUPABASE_URL"),os.Getenv("SUPABASE_KEY"),nil)
+func GetSummary(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	supabaseClient, err := supabase.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SUPABASE_KEY"), nil)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body: "unable to create supabase client",
-		}, err
+			Body:       fmt.Sprintf(`{"error": "unable to create supabase client"}`),
+		}, nil
 	}
+
 	var request Request
 	err = json.Unmarshal([]byte(event.Body), &request)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
-			Body: "unable to parse the body",
-		}, err
+			Body:       fmt.Sprintf(`{"error": "invalid JSON"}`),
+		}, nil
 	}
-	data, _, err := supabaseClient.From(os.Getenv("TABLE_NAME")).Select("*","exact",false).Single().Eq("id",request.Id).Execute()
+
+	fmt.Println(request)
+
+	if request.Id == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       fmt.Sprintf(`{"error": "docId is required"}`),
+		}, nil
+	}
+
+	data, _, err  := supabaseClient.From(os.Getenv("TABLE_NAME")).Select("*","exact",false).Eq("id", request.Id).Single().Execute()
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body: "unable to get response from supabase",
-		}, err
+			Body:       fmt.Sprintf(`{"error": "unable to get response from supabase"}`),
+		}, nil
 	}
-	return events.APIGatewayProxyResponse{StatusCode: http.StatusOK, Body: string(data)},nil
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Body:       string(data),
+	}, nil
 }
