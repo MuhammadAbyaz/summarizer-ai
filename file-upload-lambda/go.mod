@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/cilium/ebpf v0.11.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"lambda/s3"
 	"net/http"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/google/uuid"
 )
 
 type APIHandler struct {
@@ -48,7 +48,7 @@ func (u APIHandler) FileUploadHandler(request events.APIGatewayProxyRequest) (ev
 		}, nil
 	}
 
-	filename := fmt.Sprintf("upload_%d", time.Now().Unix())
+	filename := uuid.New().String()
 
 	_, err = u.s3Client.UploadFile(filename, decoded)
 	if err != nil {
@@ -60,6 +60,6 @@ func (u APIHandler) FileUploadHandler(request events.APIGatewayProxyRequest) (ev
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
-		Body:       fmt.Sprintf(`{"id": "%s"}`, filename),
+		Body:       fmt.Sprintf(`{"id": "%v"}`, filename),
 	}, nil
 }
